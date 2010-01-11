@@ -1,0 +1,22 @@
+////////////////////
+// a little comment
+										 
+// CXRP="SexyBeast"						   
+											   
+const char* pString1 = _CXR("AbcdEfg1234  blah\tblah");  // this is fun
+
+// you can put comments anywhere 			 	 		 		 	  				 					   
+  
+const char* pString2 = _CXR("This is a long one, not that it should matter...blab blah blah blah. i love trash.");
+
+// you can even put normal C++ code in this file
+class fred
+{
+public:
+	fred() {}
+	~fred() {}																			 
+
+private:							   
+	int m_iFredsStuff;
+};
+// ... tho i don't know why you would want to	   			  	 				  
