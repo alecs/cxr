@@ -28,25 +28,10 @@
 // CXR.cpp : Defines the entry point for the console application.
 //
 
-#include "stdafx.h"
 #include "CXR.h"
 #include "CmdLine.h"
 #include "Tokenizer.h"
 #include "Stream.h"
-
-
-#ifdef _DEBUG
-#define new DEBUG_NEW
-#undef THIS_FILE
-static char THIS_FILE[] = __FILE__;
-#endif
-
-/////////////////////////////////////////////////////////////////////////////
-// The one and only application object
-
-CWinApp theApp;
-
-using namespace std;
 
 /////////////////////////////////////////////////////////////////
 
@@ -67,83 +52,74 @@ const int basechar2 = 128;
 
 int _tmain(int argc, char* argv[], char* envp[])
 {
-	int nRetCode = 0;
+   int nRetCode = 0;
 
    srand(time(NULL));
 
-	// initialize MFC and print and error on failure
-	if (!AfxWinInit(::GetModuleHandle(NULL), NULL, ::GetCommandLine(), 0))
-	{
-		// TODO: change error code to suit your needs
-		cerr << _T("Fatal Error: MFC initialization failed") << endl;
-		nRetCode = 1;
-	}
-	else
-	{
-      cerr << "Starting CXR, the literal string encryptor. Copyright 2002, Smaller Animals Software Inc.\n";
 
-      if ((basechar1 == 0) || (basechar2 == 0) || (basechar1 > 239) || (basechar2 > 239))
-      {
-         cerr << "CXR basechar values out of acceptable range. Aborting\n";
-         nRetCode = 1;
-         return nRetCode;
-      }
+   cerr << "Starting CXR, the literal string encryptor. Copyright 2002, Smaller Animals Software Inc.\n";
 
-      CCmdLine cmd;
-      if (cmd.SplitLine(argc, argv) >= 2)
+   if ((basechar1 == 0) || (basechar2 == 0) || (basechar1 > 239) || (basechar2 > 239))
+   {
+      cerr << "CXR basechar values out of acceptable range. Aborting\n";
+      nRetCode = 1;
+      return nRetCode;
+   }
+
+   CCmdLine cmd;
+   if (cmd.SplitLine(argc, argv) >= 2)
+   {
+      CString csInFile = cmd.GetSafeArgument("-i", 0, "");
+      CString csOutFile = cmd.GetSafeArgument("-o", 0, "");
+      if (!csInFile.IsEmpty() && !csOutFile.IsEmpty())
       {
-         CString csInFile = cmd.GetSafeArgument("-i", 0, "");
-         CString csOutFile = cmd.GetSafeArgument("-o", 0, "");
-         if (!csInFile.IsEmpty() && !csOutFile.IsEmpty())
+         // open the input file
+         CStdioFile fileIn;
+
+         // open the output file
+         CStdioFile fileOut;
+         
+
+         if (fileIn.Open(csInFile, CFile::modeRead | CFile::typeText))
          {
-		      // open the input file
-            CStdioFile fileIn;
-
-            // open the output file
-            CStdioFile fileOut;
-            
-
-            if (fileIn.Open(csInFile, CFile::modeRead | CFile::typeText))
+            if (fileOut.Open(csOutFile, CFile::modeCreate | CFile::modeWrite | CFile::typeText ))
             {
-               if (fileOut.Open(csOutFile, CFile::modeCreate | CFile::modeWrite | CFile::typeText ))
+               if (!ProcessFile(fileIn, fileOut))
                {
-                  if (!ProcessFile(fileIn, fileOut))
-                  {
-                     cerr << "CXR failed\n";
-                     nRetCode = 1;
-                  }
-               }
-               else
-               {
-                  cerr << _T("Unable to open output file: ") << (LPCTSTR)csOutFile << endl;
+                  cerr << "CXR failed\n";
                   nRetCode = 1;
                }
             }
             else
             {
-               cerr << _T("Unable to open input file: ") << (LPCTSTR)csInFile << endl;
+               cerr << _T("Unable to open output file: ") << (LPCTSTR)csOutFile << endl;
                nRetCode = 1;
-            }
-
-            if (nRetCode==0)
-            {
-               cerr << "CXR created: " << (LPCTSTR)csOutFile << "\n";
             }
          }
          else
          {
-            cerr << _T("Not enough parameters") << endl;
+            cerr << _T("Unable to open input file: ") << (LPCTSTR)csInFile << endl;
             nRetCode = 1;
          }
-      }      
+
+         if (nRetCode==0)
+         {
+            cerr << "CXR created: " << (LPCTSTR)csOutFile << "\n";
+         }
+      }
       else
       {
          cerr << _T("Not enough parameters") << endl;
          nRetCode = 1;
       }
-	}
+   }      
+   else
+   {
+      cerr << _T("Not enough parameters") << endl;
+      nRetCode = 1;
+   }
 
- 	return nRetCode;
+   return nRetCode;
 }
 
 /////////////////////////////////////////////////////////////////
@@ -455,8 +431,8 @@ const char *pDec1 =
 "      int i;BYTE rs;unsigned kp;\n" \
 "      for(i=0;i<256;i++)c[i]=i;kp=0;rs=0;for(i=255;i;i--)std::swap(c[i],c[kr(i,key,ks,&rs,&kp)]);r2=c[1];r1=c[3];av=c[5];lp=c[7];lc=c[rs];rs=0;kp=0;\n" \
 "   }\n" \
-"	inline void SC(){BYTE st=c[lc];r1+=c[r2++];c[lc]=c[r1];c[r1]=c[lp];c[lp]=c[r2];c[r2]=st;av+=c[st];}\n" \
-"	BYTE c[256],r2,r1,av,lp,lc;    \n" \
+"  inline void SC(){BYTE st=c[lc];r1+=c[r2++];c[lc]=c[r1];c[r1]=c[lp];c[lp]=c[r2];c[r2]=st;av+=c[st];}\n" \
+"  BYTE c[256],r2,r1,av,lp,lc;    \n" \
 "\n" \
 "   BYTE kr(unsigned int lm, const BYTE *uk, BYTE ks, BYTE *rs, unsigned *kp)\n" \
 "   {\n" \
@@ -465,8 +441,8 @@ const char *pDec1 =
 "};\n" \
 "struct CXRD:CCXR\n" \
 "{\n" \
-"	CXRD(const BYTE *userKey, unsigned int keyLength=16) : CCXR(userKey, keyLength) {}\n" \
-"	inline BYTE pb(BYTE b){SC();lp=b^c[(c[r1]+c[r2])&0xFF]^c[c[(c[lp]+c[lc]+c[av])&0xFF]];lc=b;return lp;}\n" \
+"  CXRD(const BYTE *userKey, unsigned int keyLength=16) : CCXR(userKey, keyLength) {}\n" \
+"  inline BYTE pb(BYTE b){SC();lp=b^c[(c[r1]+c[r2])&0xFF]^c[c[(c[lp]+c[lc]+c[av])&0xFF]];lc=b;return lp;}\n" \
 "};\n";
 
    out.WriteString(pStr1);
