@@ -149,8 +149,8 @@ bool ProcessFile(std::istream &in, std::ostream &out, const std::string inName, 
    std::string csPassword;
    std::string line;
 
-   char *pMetachars = "/\\=();'";
-   char *pKeyWords[3] = {"//", "_CXR", "CXRP"};
+   const char *pMetachars = "/\\=();'";
+   const char *pKeyWords[3] = {"//", "_CXR", "CXRP"};
    
    CTokenizer tokenizer(pKeyWords, 3, pMetachars, strlen(pMetachars));
    int iErr = CTokenizer::eErrorNone;

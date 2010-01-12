@@ -70,7 +70,7 @@ public:
    enum {eErrorNone, eErrorSyntax,}eError;
 
 
-	CTokenizer(char **pKeyWords, int iKeyWords, char *pMetaChars, int iMetaChars);
+	CTokenizer(const char **pKeyWords, int iKeyWords, const char *pMetaChars, int iMetaChars);
 	virtual ~CTokenizer();
    void     Clear();
    void     Init();
@@ -91,9 +91,9 @@ public:
 protected:
    int      GetToken(const char *pInput, std::string &out, bool &bQuotedString);
    
-   char **  m_pKeyWords;
+   const char **  m_pKeyWords;
    int      m_iKeyWords;
-   char *   m_MetaChars;
+   const char *   m_MetaChars;
    int      m_iMetaChars;
 
    CSATokenVector m_tokens;
