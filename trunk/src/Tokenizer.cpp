@@ -50,9 +50,9 @@
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
-CTokenizer::CTokenizer(char **pKeyWords, 
+CTokenizer::CTokenizer(const char **pKeyWords, 
                        int iKeyWords,
-                       char *pMetaChars,
+                       const char *pMetaChars,
                        int iMetaChars)
 {
    m_pKeyWords = pKeyWords;
