@@ -38,6 +38,10 @@
 
 #define ASSERT(x) (x)
 
+#ifdef _WIN32
+   #define snprintf _snprintf
+#endif
+
 /////////////////////////////////////////////////////////////////
 
 static bool         ProcessFile(std::istream &in, std::ostream &out, const std::string inName, const std::string &outName);

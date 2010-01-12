@@ -33,6 +33,10 @@
 #include <string>
 #include <string.h>
 
+#ifdef _WIN32
+   #define strncasecmp strnicmp
+#endif
+
 // CXR does not have comments
 #undef ALLOW_COMMENTS
 
