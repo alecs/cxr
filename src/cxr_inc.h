@@ -1,6 +1,8 @@
 #ifndef CRXHeaderH
 #define CRXHeaderH
 
+#include <string>
+
 #define _USING_CXR
 
 #ifndef _USING_CXR

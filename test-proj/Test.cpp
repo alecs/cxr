@@ -1,7 +1,7 @@
 #include <iostream>
 #include <string>
 
-#include "../src/cxr_inc.h"
+#include "cxr_inc.h"
 
 extern const char* pString1;
 extern const char* pString2;

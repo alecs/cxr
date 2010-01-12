@@ -162,15 +162,15 @@ bool ProcessFile(std::istream &in, std::ostream &out, const std::string inName, 
    out << inName;
    out << "\n//\n";
    out << "\n/////////////////////////////////////////////////////////////\n\n";
-   out << "#include \"stdafx.h\"\n";
    out << "#include \"cxr_inc.h\"\n\n";
+   out << "#define BYTE unsigned char \n";
 
    bool bFoundCXR = false;
 
    do
    {
-      in >> line;
-
+      std::getline(in, line);
+      
       switch (iState)
       {
       case eStateWantPassword:
@@ -387,6 +387,8 @@ bool AddDecode(const std::string & csPassword, std::ostream &out)
    out << "\n\n/////////////////////////////////////////////////////////////\n";
    out << "// CXR-generated decoder follows\n\n";
    out << "#include <algorithm>\n";
+   out << "#include <string>\n";
+   out << "#include <stdexcept>\n";
    out << "const char * __pCXRPassword = \"";  
 
    // the password that encrypted the text used the literal text from the file (non-escaped \ chars).
@@ -409,7 +411,7 @@ const char *pDec1 =
 "      int ibl=strlen(pIn);\n"\
 "      if (ibl&0x01)\n"\
 "      {\n"\
-"         ASSERT(!\"Illegal string length in Decrypt\");\n"\
+"         throw new std::runtime_error(\"Illegal string length in Decrypt\");\n"\
 "         return pIn;\n"\
 "      }\n"\
 "      ibl/=2;\n"\
