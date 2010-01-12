@@ -1,7 +1,7 @@
 
 BIN=./bin
 SRC=./src
-TEST=./test-proj
+TEST=./test
 CXR=$(BIN)/cxr
 OBJS= $(SRC)/CXR.o $(SRC)/CmdLine.o $(SRC)/Stream.o $(SRC)/Tokenizer.o
 TEST_OBJS= $(TEST)/Test.o $(TEST)/strings.o
