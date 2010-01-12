@@ -38,23 +38,28 @@
 
 #define ASSERT(x) (x)
 
-
 /////////////////////////////////////////////////////////////////
 
 static bool         ProcessFile(std::istream &in, std::ostream &out, const std::string inName, const std::string &outName);
 static bool         AddDecode(const std::string & csPassword, std::ostream &out);
-static std::string  Encrypt(const std::string &csIn, const char *pPass);
+static std::string  Encrypt(const std::string &csIn, const char *pPass, bool hexEncode= true);
 static std::string  Decrypt(const char *pIn, const char *pPass);
 static bool         ExpandOctal(const std::string &csIn, std::string &csOut, int &iConsumed);
 static std::string TranslateString(const std::string &csIn);
 static bool         ExpandHex(const std::string &csIn, std::string &csOut, int &iConsumed);
-static std::string  EscapeString(const char *pIn);
+static std::string  HexEncodeString(const char *pIn);
 
 // these can be adjusted in the range 1 to 239
 const int basechar1 = 128;
 const int basechar2 = 128;
 
 /////////////////////////////////////////////////////////////////
+
+std::string reverse(const std::string &str) {
+   std::string rev= str;
+   reverse(rev.begin(), rev.end());
+   return rev;
+}
 
 int main(int argc, char* argv[])
 {
@@ -198,6 +203,10 @@ bool ProcessFile(std::istream &in, std::ostream &out, const std::string inName, 
                      break;
                   }
 
+                  // encrypt the password itself (using its reversal as the encoding password)
+                  // so that it won't show up in the binary either
+                  csPassword= Encrypt(csPassword, reverse(csPassword).c_str(), false);
+
                   iState = eStateHavePassword;
                   continue;
                }
@@ -311,7 +320,7 @@ void AddEncByte(BYTE c, std::string &csOut)
 
 /////////////////////////////////////////////////////////////////
 
-std::string Encrypt(const std::string &csIn, const char *pPass)
+std::string Encrypt(const std::string &csIn, const char *pPass, bool hexEncode)
 {
    std::string csOut;
 
@@ -330,14 +339,20 @@ std::string Encrypt(const std::string &csIn, const char *pPass)
    */ 
    BYTE seed = rand() % 256;
    BYTE c = sap.ProcessByte((BYTE)(seed));
-   AddEncByte(c, csOut);
+   if (hexEncode)
+      AddEncByte(c, csOut);
+   else
+      csOut+= c;
 
    // encrypt and convert to hex string
    for (int i=0; i < csIn.length(); i++)
    {
       char t = csIn.at(i);
       BYTE c = sap.ProcessByte((BYTE)(t));
-      AddEncByte(c, csOut);
+      if (hexEncode)
+         AddEncByte(c, csOut);
+      else
+         csOut+= c;
    }
 
    return csOut;
@@ -386,17 +401,16 @@ bool AddDecode(const std::string & csPassword, std::ostream &out)
 {
    out << "\n\n/////////////////////////////////////////////////////////////\n";
    out << "// CXR-generated decoder follows\n\n";
+   out << "#include <iostream>\n";
    out << "#include <algorithm>\n";
    out << "#include <string>\n";
    out << "#include <stdexcept>\n";
-   out << "const char * __pCXRPassword = \"";  
+   out << "const unsigned char __pCXRPassword[] = {";  
 
-   // the password that encrypted the text used the literal text from the file (non-escaped \ chars).
-   // we need to make sure that compiler sees the same text when it gets the passowrd. so,
-   // we must double any "\" chars, to prevent them from becoming C-style escapes.
-   out << EscapeString(csPassword.c_str());
+   // encode the password as an unsigned char array using "0xNN" hex notation
+   out << HexEncodeString(csPassword.c_str());
 
-   out << "\";\n";
+   out << "};" << std::endl;
    out << "const int __iCXRDecBase1 = " << (int)basechar1 << ";\nconst int __iCXRDecBase2 = " << basechar2 << ";\n\n";
                             
    // the high-level decoding function
@@ -404,14 +418,14 @@ const char *pDec1 =
 "std::string __CXRDecrypt(const char *pIn)\n"\
 "{\n"\
 "   std::string x;char b[3];b[2]=0;\n"\
-"   CXRD sap((const BYTE*)__pCXRPassword, strlen(__pCXRPassword));\n"\
+"   CXRD sap(__pCXRPassword, sizeof(__pCXRPassword));\n"\
 "   int iLen = strlen(pIn);\n"\
 "   if (iLen > 2)\n"\
 "   {\n"\
 "      int ibl=strlen(pIn);\n"\
 "      if (ibl&0x01)\n"\
 "      {\n"\
-"         throw new std::runtime_error(\"Illegal string length in Decrypt\");\n"\
+"         throw new std::runtime_error(\"\");\n"\
 "         return pIn;\n"\
 "      }\n"\
 "      ibl/=2;\n"\
@@ -656,21 +670,21 @@ bool ExpandHex(const std::string &csIn, std::string &csOut, int &iConsumed)
 
 /////////////////////////////////////////////////////////////////
 
-std::string EscapeString(const char *pIn)
+std::string HexEncodeString(const char *pIn)
 {
    std::string csOut;
+   char buf[5];
 
    int iLen = strlen(pIn);
 
    for (int i=0;i<iLen;i++)
    {
-      csOut+=pIn[i];
-      // double all "\" chars
-      if (pIn[i] == '\\')
-      {
-         csOut+='\\';
-      }
+      snprintf(buf, sizeof(buf), "0x%02x", (unsigned char)pIn[i]);      
+      csOut+= buf;
+      csOut+= ",";
    }
+
+   csOut.erase(csOut.end()-1);
 
    return csOut;
 }

@@ -13,7 +13,7 @@ setup:
 	mkdir -p $(BIN)
 
 clean:
-	rm $(SRC)/*.o
+	rm $(SRC)/*.o $(TEST)/*.o
 
 test: cxr test-setup $(TEST_OBJS)
 	$(CXX) -o $(BIN)/$@ $(TEST_OBJS)
