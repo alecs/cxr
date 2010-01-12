@@ -44,6 +44,10 @@
 #ifndef CXR_STREAM_H
 #define CXR_STREAM_H
 
+#include <algorithm>
+
+#define BYTE unsigned char
+
 class CCXRIntBase
 {
 protected:
