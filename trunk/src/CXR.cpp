@@ -31,6 +31,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <time.h>
 
 #include "CmdLine.h"
 #include "Tokenizer.h"
