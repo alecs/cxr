@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 2.6)
 MACRO(CXR SourceFile DestFile)
    ADD_CUSTOM_COMMAND(
       OUTPUT ${DestFile}
-      COMMAND cxr -i ${CMAKE_CURRENT_SOURCE_DIR}/${SourceFile} -o ${CMAKE_CURRENT_SOURCE_DIR}/${DestFile}
+      COMMAND cxr -i ${CMAKE_CURRENT_SOURCE_DIR}/${SourceFile} -o ${CMAKE_CURRENT_BINARY_DIR}/${DestFile}
       DEPENDS cxr ${CMAKE_CURRENT_SOURCE_DIR}/${SourceFile}
      )   
 ENDMACRO(CXR)
