@@ -15,9 +15,12 @@ setup:
 clean:
 	rm $(SRC)/*.o
 
-test: cxr $(TEST_OBJS)
+test: cxr test-setup $(TEST_OBJS)
 	$(CXX) -o $(BIN)/$@ $(TEST_OBJS)
-	
+
+test-setup:
+	cp $(SRC)/cxr_inc.h $(TEST)
+
 $(TEST)/strings.o: $(TEST)/strings.cxr
 	$(CXR) -i $(TEST)/strings.cxr -o $(TEST)/strings.cpp
 	$(CXX) -c $(TEST)/strings.cpp -o $(TEST)/strings.o
