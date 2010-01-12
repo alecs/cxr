@@ -29,14 +29,9 @@
 //
 //////////////////////////////////////////////////////////////////////
 
-#include "stdafx.h"
 #include "Tokenizer.h"
-
-#ifdef _DEBUG
-#undef THIS_FILE
-static TCHAR THIS_FILE[]=__FILE__;
-#define new DEBUG_NEW
-#endif
+#include <string>
+#include <string.h>
 
 // CXR does not have comments
 #undef ALLOW_COMMENTS
@@ -49,13 +44,15 @@ static TCHAR THIS_FILE[]=__FILE__;
 #define COMMENT_STOP    "*/"
 #endif
 
+#define TRACE fprintf(stderr, 
+
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
-CTokenizer::CTokenizer(TCHAR **pKeyWords, 
+CTokenizer::CTokenizer(char **pKeyWords, 
                        int iKeyWords,
-                       TCHAR *pMetaChars,
+                       char *pMetaChars,
                        int iMetaChars)
 {
    m_pKeyWords = pKeyWords;
@@ -85,19 +82,19 @@ void CTokenizer::Init()
 
 //////////////////////////////////////////////////////////////////////
 // extract an array of tokens from this input text
-int CTokenizer::Tokenize(const TCHAR *pInputLine)
+int CTokenizer::Tokenize(const char *pInputLine)
 {
    int err = eErrorNone;
 
    Init();
 
-   int iLen = _tcslen(pInputLine);
+   int iLen = strlen(pInputLine);
 
    bool bInComment = false;
 
    for (int i=0; i < iLen; i++)
    {
-      CString curTokenString;
+      std::string curTokenString;
       bool bQuotedString = false;
 
       int iConsumed = GetToken(pInputLine + i, curTokenString, bQuotedString);
@@ -134,7 +131,7 @@ int CTokenizer::Tokenize(const TCHAR *pInputLine)
                int iStart = i;
                int iStop = i + iConsumed - 1;
 
-               CSAToken curToken(curTokenString, iStart, iStop, bQuotedString);
+               CSAToken curToken(curTokenString.c_str(), iStart, iStop, bQuotedString);
 
                m_tokens.push_back(curToken);
             }
@@ -151,10 +148,10 @@ int CTokenizer::Tokenize(const TCHAR *pInputLine)
          {
             if (!isspace(*(pInputLine + i)))
             {
-               curTokenString.Empty();
+               curTokenString.clear();
                curTokenString+=*(pInputLine + i);
 
-               CSAToken curToken(curTokenString, i, curTokenString.GetLength() - 1, bQuotedString);
+               CSAToken curToken(curTokenString.c_str(), i, curTokenString.length() - 1, bQuotedString);
 
                m_tokens.push_back(curToken);
             }
@@ -167,31 +164,31 @@ int CTokenizer::Tokenize(const TCHAR *pInputLine)
 
 //////////////////////////////////////////////////////////////////////
 // is this text a keyword?
-bool CTokenizer::IsKeyWord(CString &str)
+bool CTokenizer::IsKeyWord(std::string &str)
 {
-   return IsKeyWord((const TCHAR *)str);
+   return IsKeyWord(str.c_str());
 }
 
 //////////////////////////////////////////////////////////////////////
 
-bool CTokenizer::IsKeyWord(const TCHAR *pInput)
+bool CTokenizer::IsKeyWord(const char *pInput)
 {
    if (m_pKeyWords==NULL)
    {
       return false;
    }
 
-   int i_tcslen = _tcslen(pInput);
+   int istrlen = strlen(pInput);
 
    int iBestMatch = -1;
 
    for (int i=0; i < m_iKeyWords; i++)
    {
-      int iCurKWLen = _tcslen(m_pKeyWords[i]);
+      int iCurKWLen = strlen(m_pKeyWords[i]);
 
-      if (i_tcslen <= iCurKWLen)
+      if (istrlen <= iCurKWLen)
       {
-         if (strnicmp(m_pKeyWords[i], pInput, iCurKWLen)==0)
+         if (strncasecmp(m_pKeyWords[i], pInput, iCurKWLen)==0)
          {
             iBestMatch = i;
          }
@@ -201,12 +198,12 @@ bool CTokenizer::IsKeyWord(const TCHAR *pInput)
    if (iBestMatch==-1)
    {
 #ifdef ALLOW_COMMENTS
-      if (CSAScrUtil::sa_strnicmp(COMMENT_START, pInput, _tcslen(COMMENT_START))==0)
+      if (CSAScrUtil::sa_strnicmp(COMMENT_START, pInput, strlen(COMMENT_START))==0)
       {
          iBestMatch = m_iKeyWords + 1;
       }
 
-      if (CSAScrUtil::sa_strnicmp(COMMENT_STOP, pInput, _tcslen(COMMENT_STOP))==0)
+      if (CSAScrUtil::sa_strnicmp(COMMENT_STOP, pInput, strlen(COMMENT_STOP))==0)
       {
          iBestMatch = m_iKeyWords + 2;
       }
@@ -219,9 +216,9 @@ bool CTokenizer::IsKeyWord(const TCHAR *pInput)
 //////////////////////////////////////////////////////////////////////
 // find the next token in the string
 
-int CTokenizer::GetToken(const TCHAR *pInput, CString &out, bool &bQuotedString)
+int CTokenizer::GetToken(const char *pInput, std::string &out, bool &bQuotedString)
 {
-   int i_tcslen = _tcslen(pInput);
+   int istrlen = strlen(pInput);
 
    bool bFoundChars = false;
 
@@ -231,9 +228,10 @@ int CTokenizer::GetToken(const TCHAR *pInput, CString &out, bool &bQuotedString)
 
    bQuotedString = false;
 
-   TCHAR c;
+   char c;
+   int iWS, i;
 
-   for (int iWS = 0; iWS < i_tcslen; iWS++)
+   for (iWS = 0; iWS < istrlen; iWS++)
    {
       c = *(pInput + iWS);
       if (!isspace(c))
@@ -242,13 +240,13 @@ int CTokenizer::GetToken(const TCHAR *pInput, CString &out, bool &bQuotedString)
          break;
    }
 
-   for (int i=iWS; i<i_tcslen; i++)
+   for (i=iWS; i<istrlen; i++)
    {
       c = *(pInput + i);
 
       // not in quotes?
       // open quote
-      if ((c==_T('"')) && (!bInQuotes))
+      if ((c=='"') && (!bInQuotes))
       {
          // not in quotes, but we found a ", and we've already found chars?
          if (bFoundChars)
@@ -264,7 +262,7 @@ int CTokenizer::GetToken(const TCHAR *pInput, CString &out, bool &bQuotedString)
       }
 
       // close quote
-      if ((c==_T('"')) && (bInQuotes))
+      if ((c=='"') && (bInQuotes))
       {
          bInQuotes = false;
 #ifdef RETURN_QUOTED_STRINGS
@@ -279,16 +277,16 @@ int CTokenizer::GetToken(const TCHAR *pInput, CString &out, bool &bQuotedString)
       if (bInQuotes)
       {
          // escape!
-         if (c==_T('\\'))
+         if (c=='\\')
          {
             //out+=c;
-            if (i < i_tcslen - 1)
+            if (i < istrlen - 1)
             {
                switch (*(pInput + i + 1))
                {
                   // if we see \" in a quoted string, don't treat it as a string end!
-               case _T('"'):
-                  out+= _T("\\\""); // output the slash and the quote
+               case '"':
+                  out+= "\\\""; // output the slash and the quote
                   i++; // skip the quote in the string
                   continue;
                   break;
@@ -327,9 +325,9 @@ int CTokenizer::GetToken(const TCHAR *pInput, CString &out, bool &bQuotedString)
             bFoundChars = true;
 
             // in case some KWs start with metachars
-				if (i < i_tcslen - 2)
+				if (i < istrlen - 2)
 				{
-					TCHAR buf[3];
+					char buf[3];
 					buf[0]=c;
 					buf[1]=*(pInput + i + 1);
 					buf[2]=0;
@@ -393,7 +391,7 @@ int CTokenizer::GetToken(const TCHAR *pInput, CString &out, bool &bQuotedString)
 
 //////////////////////////////////////////////////////////////////////
 
-bool CTokenizer::IsMetaChar(const TCHAR c)
+bool CTokenizer::IsMetaChar(const char c)
 {
    for (int i=0; i < m_iMetaChars; i++)
    {
@@ -409,14 +407,14 @@ bool CTokenizer::IsMetaChar(const TCHAR c)
 
 //////////////////////////////////////////////////////////////////////
 
-bool CTokenizer::IsMetaChar(CString &str)
+bool CTokenizer::IsMetaChar(std::string &str)
 {
-   if (str.GetLength() > 1)
+   if (str.length() > 1)
    {
       return false;
    }
 
-   TCHAR c = str.GetAt(0);
+   char c = str.at(0);
 
    for (int i=0; i < m_iMetaChars; i++)
    {
@@ -438,7 +436,7 @@ void CTokenizer::Dump()
    int i=0;
    for (theIterator = m_tokens.begin(); theIterator < m_tokens.end(); theIterator++)
    {
-      TRACE("%d [%d-%d] : \"%s\"\n", i++, (*theIterator).iStart, (*theIterator).iStop, (const TCHAR *)((*theIterator).csToken));
+      TRACE("%d [%d-%d] : \"%s\"\n", i++, (*theIterator).iStart, (*theIterator).iStop, ((*theIterator).csToken)).c_str());
    }
 }
 

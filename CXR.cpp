@@ -28,21 +28,27 @@
 // CXR.cpp : Defines the entry point for the console application.
 //
 
-#include "CXR.h"
+#include <iostream>
+#include <fstream>
+#include <string>
+
 #include "CmdLine.h"
 #include "Tokenizer.h"
 #include "Stream.h"
 
+#define ASSERT(x) (x)
+
+
 /////////////////////////////////////////////////////////////////
 
-static bool     ProcessFile(CStdioFile &in, CStdioFile &out);
-static bool     AddDecode(const CString & csPassword, CStdioFile &out);
-static CString  Encrypt(const CString &csIn, const char *pPass);
-static CString  Decrypt(const char *pIn, const char *pPass);
-static bool     ExpandOctal(const CString &csIn, CString &csOut, int &iConsumed);
-static CString  TranslateCString(const CString &csIn);
-static bool     ExpandHex(const CString &csIn, CString &csOut, int &iConsumed);
-static CString    EscapeCString(const char *pIn);
+static bool         ProcessFile(std::istream &in, std::ostream &out, const std::string inName, const std::string &outName);
+static bool         AddDecode(const std::string & csPassword, std::ostream &out);
+static std::string  Encrypt(const std::string &csIn, const char *pPass);
+static std::string  Decrypt(const char *pIn, const char *pPass);
+static bool         ExpandOctal(const std::string &csIn, std::string &csOut, int &iConsumed);
+static std::string TranslateString(const std::string &csIn);
+static bool         ExpandHex(const std::string &csIn, std::string &csOut, int &iConsumed);
+static std::string  EscapeString(const char *pIn);
 
 // these can be adjusted in the range 1 to 239
 const int basechar1 = 128;
@@ -50,7 +56,7 @@ const int basechar2 = 128;
 
 /////////////////////////////////////////////////////////////////
 
-int _tmain(int argc, char* argv[], char* envp[])
+int main(int argc, char* argv[])
 {
    int nRetCode = 0;
 
@@ -69,22 +75,23 @@ int _tmain(int argc, char* argv[], char* envp[])
    CCmdLine cmd;
    if (cmd.SplitLine(argc, argv) >= 2)
    {
-      CString csInFile = cmd.GetSafeArgument("-i", 0, "");
-      CString csOutFile = cmd.GetSafeArgument("-o", 0, "");
-      if (!csInFile.IsEmpty() && !csOutFile.IsEmpty())
+      std::string csInFile = cmd.GetSafeArgument("-i", 0, "");
+      std::string csOutFile = cmd.GetSafeArgument("-o", 0, "");
+      if (!csInFile.empty() && !csOutFile.empty())
       {
          // open the input file
-         CStdioFile fileIn;
+         std::ifstream fileIn;
+         fileIn.open(csInFile.c_str()); 
 
-         // open the output file
-         CStdioFile fileOut;
-         
-
-         if (fileIn.Open(csInFile, CFile::modeRead | CFile::typeText))
+         if (fileIn.good())
          {
-            if (fileOut.Open(csOutFile, CFile::modeCreate | CFile::modeWrite | CFile::typeText ))
+            // open the output file
+            std::ofstream fileOut;
+            fileOut.open(csOutFile.c_str(), std::ofstream::out | std::ofstream::trunc);      
+            if (fileOut.good())
             {
-               if (!ProcessFile(fileIn, fileOut))
+               // TODO: have full path to infile, but just filename for outfile
+               if (!ProcessFile(fileIn, fileOut, csInFile, csOutFile))
                {
                   cerr << "CXR failed\n";
                   nRetCode = 1;
@@ -92,30 +99,30 @@ int _tmain(int argc, char* argv[], char* envp[])
             }
             else
             {
-               cerr << _T("Unable to open output file: ") << (LPCTSTR)csOutFile << endl;
+               cerr << "Unable to open output file: " << csOutFile << endl;
                nRetCode = 1;
             }
          }
          else
          {
-            cerr << _T("Unable to open input file: ") << (LPCTSTR)csInFile << endl;
+            cerr << "Unable to open input file: " << csInFile << endl;
             nRetCode = 1;
          }
 
          if (nRetCode==0)
          {
-            cerr << "CXR created: " << (LPCTSTR)csOutFile << "\n";
+            cerr << "CXR created: " << csOutFile << "\n";
          }
       }
       else
       {
-         cerr << _T("Not enough parameters") << endl;
+         cerr << "Not enough parameters" << endl;
          nRetCode = 1;
       }
    }      
    else
    {
-      cerr << _T("Not enough parameters") << endl;
+      cerr << "Not enough parameters" << endl;
       nRetCode = 1;
    }
 
@@ -124,7 +131,7 @@ int _tmain(int argc, char* argv[], char* envp[])
 
 /////////////////////////////////////////////////////////////////
 
-bool ProcessFile(CStdioFile &in, CStdioFile &out)
+bool ProcessFile(std::istream &in, std::ostream &out, const std::string inName, const std::string &outName)
 {
    enum 
    {
@@ -134,51 +141,48 @@ bool ProcessFile(CStdioFile &in, CStdioFile &out)
 
    int iState = eStateWantPassword;
 
-   CString csPassword;
-   CString line;
+   std::string csPassword;
+   std::string line;
 
-   char *pMetachars = _T("/\\=();'");
-   char *pKeyWords[3] = {_T("//"), _T("_CXR"), _T("CXRP")};
+   char *pMetachars = "/\\=();'";
+   char *pKeyWords[3] = {"//", "_CXR", "CXRP"};
    
    CTokenizer tokenizer(pKeyWords, 3, pMetachars, strlen(pMetachars));
    int iErr = CTokenizer::eErrorNone;
    bool ok = true;
 
-   out.WriteString(_T("/////////////////////////////////////////////////////////////\n"));
-   out.WriteString(_T("// "));
-   out.WriteString(out.GetFileName());
-   out.WriteString(_T("\n//\n"));
-   out.WriteString(_T("// This file was generated by CXR, the literal string encryptor.\n"));
-   out.WriteString(_T("// CXR, Copyright 2002, Smaller Animals Software, Inc., all rights reserved.\n"));
-   out.WriteString(_T("//\n"));
-   out.WriteString(_T("// Please do not edit this file. Any changes here will be overwritten on the next compile.\n// If you wish to make changes to a string, please edit:\n//     "));
-   out.WriteString(in.GetFilePath());
-   out.WriteString(_T("\n//\n"));
-   out.WriteString(_T("\n/////////////////////////////////////////////////////////////\n\n"));
-   out.WriteString(_T("#include \"stdafx.h\"\n"));
-   out.WriteString(_T("#include \"cxr_inc.h\"\n\n"));
+   out << "/////////////////////////////////////////////////////////////\n";
+   out << "// ";
+   out << outName;
+   out << "\n//\n";
+   out << "// This file was generated by CXR, the literal string encryptor.\n";
+   out << "// CXR, Copyright 2002, Smaller Animals Software, Inc., all rights reserved.\n";
+   out << "//\n";
+   out << "// Please do not edit this file. Any changes here will be overwritten on the next compile.\n// If you wish to make changes to a string, please edit:\n//     ";
+   out << inName;
+   out << "\n//\n";
+   out << "\n/////////////////////////////////////////////////////////////\n\n";
+   out << "#include \"stdafx.h\"\n";
+   out << "#include \"cxr_inc.h\"\n\n";
 
    bool bFoundCXR = false;
 
-   do 
+   do
    {
-      if (!in.ReadString(line))
-      {
-         break;
-      }
+      in >> line;
 
       switch (iState)
       {
       case eStateWantPassword:
-         iErr = tokenizer.Tokenize(line);
+         iErr = tokenizer.Tokenize(line.c_str());
          if (iErr == CTokenizer::eErrorNone)
          {
             if (tokenizer.GetTokenCount() >= 4)
             {
                // password declaration always looks like : // CXRP = "Password"
-               if ((tokenizer.GetToken(0).csToken == _T("//")) && 
-                  (tokenizer.GetToken(1).csToken == _T("CXRP")) && 
-                  (tokenizer.GetToken(2).csToken == _T("=")) && 
+               if ((tokenizer.GetToken(0).csToken == "//") && 
+                  (tokenizer.GetToken(1).csToken == "CXRP") && 
+                  (tokenizer.GetToken(2).csToken == "=") && 
                   (tokenizer.GetToken(3).bIsQuotedString))
                {
                   // we'll use the password from the file, literally. it's not treated as
@@ -187,9 +191,9 @@ bool ProcessFile(CStdioFile &in, CStdioFile &out)
                   // the compiler gets the same text by adding any necessary escapes.
                   csPassword = tokenizer.GetToken(3).csToken;
 
-                  if (csPassword.IsEmpty())
+                  if (csPassword.empty())
                   {
-                     cerr << _T("Invalid CXR password: \"") << (LPCTSTR)csPassword << _T("\"") << endl;
+                     cerr << "Invalid CXR password: \"" << csPassword << "\"" << endl;
                      ASSERT(0);
                      break;
                   }
@@ -202,7 +206,7 @@ bool ProcessFile(CStdioFile &in, CStdioFile &out)
          break;
       case eStateHavePassword:
          bFoundCXR = false;
-         iErr = tokenizer.Tokenize(line);
+         iErr = tokenizer.Tokenize(line.c_str());
          if (iErr == CTokenizer::eErrorNone)
          {
             if (tokenizer.GetTokenCount() > 4)
@@ -211,40 +215,40 @@ bool ProcessFile(CStdioFile &in, CStdioFile &out)
                {
                   // looking for _CXR ( "..." )
                   if (
-                     (tokenizer.GetToken(i).csToken == _T("_CXR")) && !tokenizer.GetToken(i).bIsQuotedString &&
-                     (tokenizer.GetToken(i + 1).csToken == _T("(")) && !tokenizer.GetToken(i + 1).bIsQuotedString &&
+                     (tokenizer.GetToken(i).csToken == "_CXR") && !tokenizer.GetToken(i).bIsQuotedString &&
+                     (tokenizer.GetToken(i + 1).csToken == "(") && !tokenizer.GetToken(i + 1).bIsQuotedString &&
                      (tokenizer.GetToken(i + 2).bIsQuotedString) &&
-                     (tokenizer.GetToken(i + 3).csToken == _T(")")) && !tokenizer.GetToken(i + 3).bIsQuotedString
+                     (tokenizer.GetToken(i + 3).csToken == ")") && !tokenizer.GetToken(i + 3).bIsQuotedString
                      )
                   {
-                     CString csTrans = TranslateCString(tokenizer.GetToken(i + 2).csToken);
-                     CString csEnc = Encrypt(csTrans, csPassword);
-                     //CString csDec = Decrypt(csEnc, csPassword);
+                     std::string csTrans = TranslateString(tokenizer.GetToken(i + 2).csToken);
+                     std::string csEnc = Encrypt(csTrans, csPassword.c_str());
+                     //std::string csDec = Decrypt(csEnc, csPassword);
 
-                     out.WriteString(_T("///////////////////////////\n#ifdef _USING_CXR\n"));
+                     out << "///////////////////////////\n#ifdef _USING_CXR\n";
 
                      /*
-                     out.WriteString("//");
-                     out.WriteString(csDec);
-                     out.WriteString("\n");
+                     out << "//";
+                     out << csDec;
+                     out << "\n";
                      */
 
                      // output up to _CXR
-                     out.WriteString(line.Left(tokenizer.GetToken(i).iStart));
+                     out << line.substr(0, tokenizer.GetToken(i).iStart);
 
                      // encrypted stuff
-                     out.WriteString(_T("\""));
-                     out.WriteString(csEnc);
-                     out.WriteString(_T("\""));
+                     out << "\"";
+                     out << csEnc;
+                     out << "\"";
 
                      // to the end of the line
-                     out.WriteString(line.Mid(tokenizer.GetToken(i + 4).iStop));
+                     out << line.substr(tokenizer.GetToken(i + 4).iStop);
 
-                     out.WriteString(_T("\n"));
+                     out << "\n";
  
-                     out.WriteString(_T("#else\n"));
-                     out.WriteString(line);
-                     out.WriteString(_T("\n#endif\n\n"));
+                     out << "#else\n";
+                     out << line;
+                     out << "\n#endif\n\n";
 
                      bFoundCXR = true;
 
@@ -267,10 +271,10 @@ bool ProcessFile(CStdioFile &in, CStdioFile &out)
       }
 
       // done with it
-      out.WriteString(line);
-      out.WriteString("\n");
+      out << line;
+      out << "\n";
 
-   } while (1);
+   } while (in.good());
 
    if (iState == eStateWantPassword)
    {
@@ -288,7 +292,7 @@ bool ProcessFile(CStdioFile &in, CStdioFile &out)
 
 /////////////////////////////////////////////////////////////////
 
-void AddEncByte(BYTE c, CString &csOut)
+void AddEncByte(BYTE c, std::string &csOut)
 {
   
    char buf[4];
@@ -296,20 +300,20 @@ void AddEncByte(BYTE c, CString &csOut)
    BYTE b1 = c >> 4;
    BYTE b2 = c & 0x0f;
 
-   _snprintf(buf, 3, "%x", b1 + basechar1);
+   snprintf(buf, 3, "%x", b1 + basechar1);
    csOut+="\\x";
    csOut+=buf;
 
-   _snprintf(buf, 3, "%x", b2 + basechar1);
+   snprintf(buf, 3, "%x", b2 + basechar1);
    csOut+="\\x";
    csOut+=buf;
 }
 
 /////////////////////////////////////////////////////////////////
 
-CString Encrypt(const CString &csIn, const char *pPass)
+std::string Encrypt(const std::string &csIn, const char *pPass)
 {
-   CString csOut;
+   std::string csOut;
 
    // initialize out 
    CCXRIntEnc sap((const BYTE*)pPass, strlen(pPass));
@@ -329,9 +333,9 @@ CString Encrypt(const CString &csIn, const char *pPass)
    AddEncByte(c, csOut);
 
    // encrypt and convert to hex string
-   for (int i=0; i < csIn.GetLength(); i++)
+   for (int i=0; i < csIn.length(); i++)
    {
-      char t = csIn.GetAt(i);
+      char t = csIn.at(i);
       BYTE c = sap.ProcessByte((BYTE)(t));
       AddEncByte(c, csOut);
    }
@@ -342,13 +346,13 @@ CString Encrypt(const CString &csIn, const char *pPass)
 
 /////////////////////////////////////////////////////////////////
 
-CString Decrypt(const char *pIn, const char *pPass)
+std::string Decrypt(const char *pIn, const char *pPass)
 {
-   CString csOut;
+   std::string csOut;
 
    CCXRIntDec sap((const BYTE *)pPass, strlen(pPass));
 
-   int iLen = _tcslen(pIn);
+   int iLen = strlen(pIn);
 
    if (iLen > 2)
    {
@@ -378,28 +382,26 @@ CString Decrypt(const char *pIn, const char *pPass)
 
 /////////////////////////////////////////////////////////////////
 
-bool AddDecode(const CString & csPassword, CStdioFile &out)
+bool AddDecode(const std::string & csPassword, std::ostream &out)
 {
-   out.WriteString(_T("\n\n/////////////////////////////////////////////////////////////\n"));
-   out.WriteString(_T("// CXR-generated decoder follows\n\n"));
-   out.WriteString(_T("#include <algorithm>\n"));
-   out.WriteString(_T("const char * __pCXRPassword = \""));  
+   out << "\n\n/////////////////////////////////////////////////////////////\n";
+   out << "// CXR-generated decoder follows\n\n";
+   out << "#include <algorithm>\n";
+   out << "const char * __pCXRPassword = \"";  
 
    // the password that encrypted the text used the literal text from the file (non-escaped \ chars).
    // we need to make sure that compiler sees the same text when it gets the passowrd. so,
    // we must double any "\" chars, to prevent them from becoming C-style escapes.
-   out.WriteString(EscapeCString(csPassword));
+   out << EscapeString(csPassword.c_str());
 
-   out.WriteString(_T("\";\n"));
-   CString t; 
-   t.Format("const int __iCXRDecBase1 = %d;\nconst int __iCXRDecBase2 = %d;\n\n", basechar1, basechar2);
-   out.WriteString(t);
+   out << "\";\n";
+   out << "const int __iCXRDecBase1 = " << (int)basechar1 << ";\nconst int __iCXRDecBase2 = " << basechar2 << ";\n\n";
                             
    // the high-level decoding function
 const char *pDec1 = 
-"CString __CXRDecrypt(const char *pIn)\n"\
+"std::string __CXRDecrypt(const char *pIn)\n"\
 "{\n"\
-"   CString x;char b[3];b[2]=0;\n"\
+"   std::string x;char b[3];b[2]=0;\n"\
 "   CXRD sap((const BYTE*)__pCXRPassword, strlen(__pCXRPassword));\n"\
 "   int iLen = strlen(pIn);\n"\
 "   if (iLen > 2)\n"\
@@ -445,23 +447,23 @@ const char *pDec1 =
 "  inline BYTE pb(BYTE b){SC();lp=b^c[(c[r1]+c[r2])&0xFF]^c[c[(c[lp]+c[lc]+c[av])&0xFF]];lc=b;return lp;}\n" \
 "};\n";
 
-   out.WriteString(pStr1);
-   out.WriteString(pDec1);
+   out << pStr1;
+   out << pDec1;
 
    return true;
 }
 
 /////////////////////////////////////////////////////////////////
 
-CString TranslateCString(const CString &csIn)
+std::string TranslateString(const std::string &csIn)
 {
    // translate C-style string escapes as documented in K&R 2nd, A2.5.2
 
-   CString csOut;
+   std::string csOut;
 
-   for (int i=0;i<csIn.GetLength(); i++)
+   for (int i=0;i<csIn.length(); i++)
    {
-      int c = csIn.GetAt(i);
+      int c = csIn.at(i);
       switch (c)
       {
       default:
@@ -469,59 +471,59 @@ CString TranslateCString(const CString &csIn)
          csOut+=c;
          break;
          // c-style escape
-      case _T('\\'):
-         if (i < csIn.GetLength() - 1)
+      case '\\':
+         if (i < csIn.length() - 1)
          {
-            c = csIn.GetAt(i + 1);
+            c = csIn.at(i + 1);
             switch (c)
             {
-            case _T('n'):
-               csOut+=_T('\n');
+            case 'n':
+               csOut+='\n';
                break;
-            case _T('t'):
-               csOut+=_T('\t');
+            case 't':
+               csOut+='\t';
                break;
-            case _T('v'):
-               csOut+=_T('\v');
+            case 'v':
+               csOut+='\v';
                break;
-            case _T('b'):
-               csOut+=_T('\b');
+            case 'b':
+               csOut+='\b';
                break;
-            case _T('r'):
-               csOut+=_T('\r');
+            case 'r':
+               csOut+='\r';
                break;
-            case _T('f'):
-               csOut+=_T('\f');
+            case 'f':
+               csOut+='\f';
                break;
-            case _T('a'):
-               csOut+=_T('\a');
+            case 'a':
+               csOut+='\a';
                break;
-            case _T('\\'):
-               csOut+=_T('\\');
+            case '\\':
+               csOut+='\\';
                break;
-            case _T('?'):
-               csOut+=_T('?');
+            case '?':
+               csOut+='?';
                break;
-            case _T('\''):
-               csOut+=_T('\'');
+            case '\'':
+               csOut+='\'';
                break;
-            case _T('\"'):
-               csOut+=_T('\"');
+            case '\"':
+               csOut+='\"';
                break;
-            case _T('0'):
-            case _T('1'):
-            case _T('2'):
-            case _T('3'):
-            case _T('4'):
-            case _T('5'):
-            case _T('6'):
-            case _T('7'):
+            case '0':
+            case '1':
+            case '2':
+            case '3':
+            case '4':
+            case '5':
+            case '6':
+            case '7':
                {
                   // expand octal
                   int iConsumed = 0;
-                  if (!ExpandOctal(csIn.Mid(i), csOut, iConsumed))
+                  if (!ExpandOctal(csIn.substr(i), csOut, iConsumed))
                   {
-                     cerr << _T("Invalid octal sequence: ") << _T('\"') << (LPCTSTR)csIn << _T('\"') << endl;
+                     cerr << "Invalid octal sequence: " << '\"' << csIn << '\"' << endl;
                      csOut = csIn;
                      break;
                   }
@@ -529,13 +531,13 @@ CString TranslateCString(const CString &csIn)
                   i+=iConsumed - 1;
                }
                break;
-            case _T('x'):
+            case 'x':
                { 
                   // expand hex
                   int iConsumed = 0;
-                  if (!ExpandHex(csIn.Mid(i), csOut, iConsumed))
+                  if (!ExpandHex(csIn.substr(i), csOut, iConsumed))
                   {
-                     cerr << _T("Invalid hex sequence: ") << _T('\"') << (LPCTSTR)csIn << _T('\"') << endl;
+                     cerr << "Invalid hex sequence: " << '\"' << csIn << '\"' << endl;
                      csOut = csIn;
                      break;
                   }
@@ -551,7 +553,7 @@ CString TranslateCString(const CString &csIn)
          }
          else
          {
-            cerr << _T("Invalid escape sequence: ") << _T('\"') << (LPCTSTR)csIn << _T('\"') << endl;
+            cerr << "Invalid escape sequence: " << '\"' << csIn << '\"' << endl;
             csOut = csIn;
             break;
          }
@@ -564,15 +566,15 @@ CString TranslateCString(const CString &csIn)
 
 /////////////////////////////////////////////////////////////////
 
-bool ExpandOctal(const CString &csIn, CString &csOut, int &iConsumed)
+bool ExpandOctal(const std::string &csIn, std::string &csOut, int &iConsumed)
 {
    // staring with the escape, we need at least one more char
-   if (csIn.GetLength() < 2)
+   if (csIn.length() < 2)
    {
       return false;
    }
 
-   if (csIn.GetAt(0) != _T('\\'))
+   if (csIn.at(0) != '\\')
    {
       return false;
    }
@@ -580,9 +582,9 @@ bool ExpandOctal(const CString &csIn, CString &csOut, int &iConsumed)
    int iStart = 1;
    int iCur = iStart;
 
-   CString digits;
-   int c = csIn.GetAt(iCur);
-   while ((c >= _T('0')) && (c <= _T('7')))
+   std::string digits;
+   int c = csIn.at(iCur);
+   while ((c >= '0') && (c <= '7'))
    {
       digits+=c;
 
@@ -593,13 +595,13 @@ bool ExpandOctal(const CString &csIn, CString &csOut, int &iConsumed)
       }
          
       iCur++;
-      c = csIn.GetAt(iCur);
+      c = csIn.at(iCur);
    }
 
    char *end;
-   int octval = (char)_tcstol(digits, &end, 8);
+   int octval = (char)strtol(digits.c_str(), &end, 8);
 
-   iConsumed = digits.GetLength();
+   iConsumed = digits.length();
 
    csOut+=octval;
 
@@ -608,15 +610,15 @@ bool ExpandOctal(const CString &csIn, CString &csOut, int &iConsumed)
 
 /////////////////////////////////////////////////////////////////
 
-bool ExpandHex(const CString &csIn, CString &csOut, int &iConsumed)
+bool ExpandHex(const std::string &csIn, std::string &csOut, int &iConsumed)
 {
    // staring with the escape and the 'x', we need at least one more char
-   if (csIn.GetLength() < 3)
+   if (csIn.length() < 3)
    {
       return false;
    }
 
-   if ((csIn.GetAt(0) != _T('\\')) || (csIn.GetAt(1) != _T('x')))
+   if ((csIn.at(0) != '\\') || (csIn.at(1) != 'x'))
    {
       return false;
    }
@@ -624,14 +626,14 @@ bool ExpandHex(const CString &csIn, CString &csOut, int &iConsumed)
    int iStart = 2;
    int iCur = iStart;
 
-   CString digits;
-   int c = csIn.GetAt(iCur);
-   while (_istxdigit(c))
+   std::string digits;
+   int c = csIn.at(iCur);
+   while (isdigit(c))
    {
       digits+=c;
 
       iCur++;
-      c = csIn.GetAt(iCur);
+      c = csIn.at(iCur);
    }
 
    char *end;
@@ -639,9 +641,9 @@ bool ExpandHex(const CString &csIn, CString &csOut, int &iConsumed)
    // "There is no limit on the number of digits, but the behavior is undefined
    // if the resulting character value exceeds that of the largest character"
    // (K&R 2nd A2.5.2)
-   int hex = (char)_tcstol(digits, &end, 16);
+   int hex = (char)strtol(digits.c_str(), &end, 16);
 
-   iConsumed = digits.GetLength();
+   iConsumed = digits.length();
 
    iConsumed++; // count the "x"
 
@@ -652,19 +654,19 @@ bool ExpandHex(const CString &csIn, CString &csOut, int &iConsumed)
 
 /////////////////////////////////////////////////////////////////
 
-CString EscapeCString(const char *pIn)
+std::string EscapeString(const char *pIn)
 {
-   CString csOut;
+   std::string csOut;
 
-   int iLen = _tcslen(pIn);
+   int iLen = strlen(pIn);
 
    for (int i=0;i<iLen;i++)
    {
       csOut+=pIn[i];
       // double all "\" chars
-      if (pIn[i] == _T('\\'))
+      if (pIn[i] == '\\')
       {
-         csOut+=_T('\\');
+         csOut+='\\';
       }
    }
 

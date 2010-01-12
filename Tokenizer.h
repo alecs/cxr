@@ -25,21 +25,11 @@
 
 **********************************************************************/
 
-#if !defined(AFX_TOKENIZER_H__3FA6DAB7_4E5E_11D3_A0FA_00500402F30B__INCLUDED_)
-#define AFX_TOKENIZER_H__3FA6DAB7_4E5E_11D3_A0FA_00500402F30B__INCLUDED_
-
-#if _MSC_VER >= 1000
-#pragma once
-#endif // _MSC_VER >= 1000
-
-
+#if !defined(__TOKENIZER_H)
+#define __TOKENIZER_H
 
 #include <vector>
 #include <iterator>
-
-#pragma warning(disable:4786)
-using namespace std ;
-using namespace std::rel_ops ;
 
 //////////////////////////////////////////////////////////////////////
 
@@ -52,17 +42,17 @@ public:
       bIsQuotedString = false;
    }
    
-   CSAToken(const TCHAR *p, int x, int y, bool q)
+   CSAToken(const char *p, int x, int y, bool q)
    {
       csToken = p;
       iStart = x;
       iStop = y;
-      ASSERT(x <= y);
+      //ASSERT(x <= y);
 
       bIsQuotedString = q;
    }
 
-   CString  csToken;
+   std::string  csToken;
    int         iStart;
    int         iStop;
    bool        bIsQuotedString;
@@ -70,7 +60,7 @@ public:
 
 //////////////////////////////////////////////////////////////////////
 
-typedef vector<CSAToken> CSATokenVector;
+typedef std::vector<CSAToken> CSATokenVector;
 
 //////////////////////////////////////////////////////////////////////
 
@@ -80,30 +70,30 @@ public:
    enum {eErrorNone, eErrorSyntax,}eError;
 
 
-	CTokenizer(TCHAR **pKeyWords, int iKeyWords, TCHAR *pMetaChars, int iMetaChars);
+	CTokenizer(char **pKeyWords, int iKeyWords, char *pMetaChars, int iMetaChars);
 	virtual ~CTokenizer();
    void     Clear();
    void     Init();
 
-   int      Tokenize(const TCHAR *pInputLine);
+   int      Tokenize(const char *pInputLine);
    
-   bool     IsKeyWord(CString &str);
-   bool     IsKeyWord(const TCHAR *pInput);
+   bool     IsKeyWord(std::string &str);
+   bool     IsKeyWord(const char *pInput);
 
    void     Dump();
    
-   bool     IsMetaChar(const TCHAR c); 
-   bool     IsMetaChar(CString &str);
+   bool     IsMetaChar(const char c); 
+   bool     IsMetaChar(std::string &str);
 
-   _inline int    GetTokenCount()   {return m_tokens.size();}
-   _inline CSAToken GetToken(int i)   {return m_tokens.at(i);}
+   inline int    GetTokenCount()   {return m_tokens.size();}
+   inline CSAToken GetToken(int i)   {return m_tokens.at(i);}
 
 protected:
-   int      GetToken(const TCHAR *pInput, CString &out, bool &bQuotedString);
+   int      GetToken(const char *pInput, std::string &out, bool &bQuotedString);
    
-   TCHAR **  m_pKeyWords;
+   char **  m_pKeyWords;
    int      m_iKeyWords;
-   TCHAR *   m_MetaChars;
+   char *   m_MetaChars;
    int      m_iMetaChars;
 
    CSATokenVector m_tokens;
@@ -114,4 +104,4 @@ protected:
 extern bool operator < (const CSAToken &a, const CSAToken &b);
 extern bool operator == (const CSAToken &a, const CSAToken &b);
 
-#endif // !defined(AFX_TOKENIZER_H__3FA6DAB7_4E5E_11D3_A0FA_00500402F30B__INCLUDED_)
+#endif

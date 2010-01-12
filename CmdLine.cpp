@@ -29,11 +29,7 @@
    See SACmds.h for more info.
 ------------------------------------------------------*/
 
-// if you're using MFC, you'll need to un-comment this line
- #include "stdafx.h"
-
 #include "CmdLine.h"
-#include "crtdbg.h"
 
 /*------------------------------------------------------
   int CCmdLine::SplitLine(int argc, char **argv)
