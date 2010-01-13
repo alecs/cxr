@@ -14,11 +14,15 @@ BUILDING
       * On Mac OS X, install CMake with MacPorts:
          sudo port install cmake
       
-   Once you have cmake installed, you can build cxr:
-      cd build
-      cmake ..
-   If you're on Mac OS X or Unix, then run 'make'.
-   If you're on Windows, then run 'nmake'.
+   Once you have cmake installed, you can build cxr.
+   
+   To build cxr on Unices:
+      ./configure
+      make
+
+   To build cxr on Windows:
+      configure
+      nmake
 
    This will create the CXR tool under src/cxr and the example 
    test program under test/test.
