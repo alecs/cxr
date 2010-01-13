@@ -20,9 +20,14 @@ BUILDING
    Once you have cmake installed, you can build cxr:
       cd build
       cmake ..
-      make
+   If you're on Mac OS X or Unix, then run 'make'.
+   If you're on Windows, run 'nmake'.
+
    This will create the CXR tool under src/cxr and the example 
    test program under test/test.
+
+   FYI, for this to work on Windows, you'll need to be running these 
+   commands from the "Visual Studio Command Prompt".
 
 RUNNING
    
@@ -43,13 +48,14 @@ TESTING
    
    To verify that these strings really are encrypted, use the 'strings' tool on the executable:
       strings ./test/test
+   On Windows you can get 'strings' here:
+      http://technet.microsoft.com/en-us/sysinternals/bb897439.aspx
    
    You'll see output more or less like this on Mac OS X:
       string 1
       string 2
       PSt13runtime_error
-
-   If you're on Windows, use a hex-editor on the executable.
+   Depending on your platform you may see a lot more strings (from the CRT or other libs you've linked with).
 
    "string 1" and "string 2" here are the bare-string literals used in the test program's printing.
    Notice that you can't see the strings that were encrypted.  :)
