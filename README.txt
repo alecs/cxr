@@ -30,7 +30,7 @@ RUNNING
    
    Once cxr is built, you give it the source cxr file and the output cpp filename.
    For example:
-      ./src/cxr -i something.cxr -o something.cpp
+      ./bin/cxr -i something.cxr -o something.cpp
       
    See the CMakeLists.txt in the root of the project for an example of how to
    write a CXR macro that uses the cxr tool to generate files.
@@ -48,7 +48,7 @@ TESTING
    "AbcdEfg1234..." and "This is a long one..." were encoded using cxr and are being decrypted and printed.
    
    To verify that these strings really are encrypted, use the 'strings' tool on the executable:
-      strings ./test/test
+      strings ./bin/test
    On Windows you can get 'strings' here:
       http://technet.microsoft.com/en-us/sysinternals/bb897439.aspx
    

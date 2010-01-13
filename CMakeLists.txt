@@ -1,6 +1,9 @@
 PROJECT(cxr)
 cmake_minimum_required(VERSION 2.6)
 
+# change the default exe output dir
+SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
 # cxr macro uses cxr tool to generate output c code
 #
 MACRO(CXR SourceFile DestFile)
@@ -17,3 +20,4 @@ ENDMACRO(CXR)
 
 add_subdirectory(src)
 add_subdirectory(test)
+
