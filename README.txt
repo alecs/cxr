@@ -21,7 +21,7 @@ BUILDING
       cd build
       cmake ..
    If you're on Mac OS X or Unix, then run 'make'.
-   If you're on Windows, run 'nmake'.
+   If you're on Windows, then run 'nmake'.
 
    This will create the CXR tool under src/cxr and the example 
    test program under test/test.
@@ -40,11 +40,11 @@ RUNNING
    
 TESTING
    
-   The 'test' app make use of cxr.  When you run it it should look something like:
+   The 'test' app makes use of cxr.  When you run it it should look something like:
       string 1="AbcdEfg1234  blah	blah"
       string 2="This is a long one, not that it should matter...blab blah blah blah. i love trash."
 
-   "string 1" and "string 2" were encoded using cxr and are being decrypted and printed.
+   "AbcdEfg1234..." and "This is a long one..." were encoded using cxr and are being decrypted and printed.
    
    To verify that these strings really are encrypted, use the 'strings' tool on the executable:
       strings ./test/test
