@@ -38,6 +38,10 @@ RUNNING
    See the CMakeLists.txt in the root of the project for an example of how to
    write a CXR macro that uses the cxr tool to generate files.
    
+   For a more thorough discussion of how to use cxr, see the original article
+   on CodeProject:
+      http://www.codeproject.com/KB/string/cxr.aspx
+   
 TESTING
    
    The 'test' app makes use of cxr.  When you run it it should look something like:
