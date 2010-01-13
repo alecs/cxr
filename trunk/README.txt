@@ -55,8 +55,8 @@ TESTING
       string 1
       string 2
       PSt13runtime_error
-   Depending on your platform you may see a lot more strings (from the CRT or other libs you've linked with).
 
    "string 1" and "string 2" here are the bare-string literals used in the test program's printing.
    Notice that you can't see the strings that were encrypted.  :)
    
+   Depending on your platform you may see a lot more strings (from the CRT or other libs you've linked with).
