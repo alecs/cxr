@@ -171,7 +171,7 @@ public:
 
    /*------------------------------------------------------
 
-      StringType CCmdLine::GetSafeArgument(const char *pSwitch, int iIdx, const char *pDefault)
+      StringType CCmdLine::GetSafeArgument(const char *pSwitch, size_t iIdx, const char *pDefault)
 
       fetch an argument associated with a switch . if the parameter at
       index iIdx is not found, this will return the default that you
@@ -190,11 +190,11 @@ public:
 
    ------------------------------------------------------*/
 
-   StringType  GetSafeArgument(const char *pSwitch, int iIdx, const char *pDefault);
+   StringType  GetSafeArgument(const char *pSwitch, size_t iIdx, const char *pDefault);
 
    /*------------------------------------------------------
 
-      StringType CCmdLine::GetArgument(const char *pSwitch, int iIdx)
+      StringType CCmdLine::GetArgument(const char *pSwitch, size_t iIdx)
 
       fetch a argument associated with a switch. throws an exception 
       of (int)0, if the parameter at index iIdx is not found.
@@ -209,7 +209,7 @@ public:
       cmdLine.GetArgument("-b", 1)     throws (int)0, returns an empty string
 
    ------------------------------------------------------*/
-   StringType  GetArgument(const char *pSwitch, int iIdx); 
+   StringType  GetArgument(const char *pSwitch, size_t iIdx); 
 
    /*------------------------------------------------------
       int CCmdLine::GetArgumentCount(const char *pSwitch)

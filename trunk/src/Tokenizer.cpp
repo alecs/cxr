@@ -34,7 +34,7 @@
 #include <string.h>
 
 #ifdef _WIN32
-   #define strncasecmp strnicmp
+   #define strncasecmp _strnicmp
 #endif
 
 // CXR does not have comments

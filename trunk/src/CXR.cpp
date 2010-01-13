@@ -28,6 +28,11 @@
 // CXR.cpp : Defines the entry point for the console application.
 //
 
+#ifdef _WIN32
+   #define _CRT_SECURE_NO_WARNINGS
+   #define snprintf _snprintf
+#endif
+
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -38,10 +43,6 @@
 #include "Stream.h"
 
 #define ASSERT(x) (x)
-
-#ifdef _WIN32
-   #define snprintf _snprintf
-#endif
 
 /////////////////////////////////////////////////////////////////
 
@@ -70,7 +71,7 @@ int main(int argc, char* argv[])
 {
    int nRetCode = 0;
 
-   srand(time(NULL));
+   srand((unsigned int)time(NULL));
 
 
    cerr << "Starting CXR, the literal string encryptor. Copyright 2002, Smaller Animals Software Inc.\n";
@@ -350,7 +351,7 @@ std::string Encrypt(const std::string &csIn, const char *pPass, bool hexEncode)
       csOut+= c;
 
    // encrypt and convert to hex string
-   for (int i=0; i < csIn.length(); i++)
+   for (size_t i=0; i < csIn.length(); i++)
    {
       char t = csIn.at(i);
       BYTE c = sap.ProcessByte((BYTE)(t));
@@ -482,7 +483,7 @@ std::string TranslateString(const std::string &csIn)
 
    std::string csOut;
 
-   for (int i=0;i<csIn.length(); i++)
+   for (size_t i=0;i<csIn.length(); i++)
    {
       int c = csIn.at(i);
       switch (c)
@@ -680,9 +681,9 @@ std::string HexEncodeString(const char *pIn)
    std::string csOut;
    char buf[5];
 
-   int iLen = strlen(pIn);
+   size_t iLen = strlen(pIn);
 
-   for (int i=0;i<iLen;i++)
+   for (size_t i=0;i<iLen;i++)
    {
       snprintf(buf, sizeof(buf), "0x%02x", (unsigned char)pIn[i]);      
       csOut+= buf;
