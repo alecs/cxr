@@ -166,7 +166,7 @@ bool CCmdLine::HasSwitch(const char *pSwitch)
 
 /*------------------------------------------------------
 
-   StringType CCmdLine::GetSafeArgument(const char *pSwitch, int iIdx, const char *pDefault)
+   StringType CCmdLine::GetSafeArgument(const char *pSwitch, size_t iIdx, const char *pDefault)
 
    fetch an argument associated with a switch . if the parameter at
    index iIdx is not found, this will return the default that you
@@ -185,7 +185,7 @@ bool CCmdLine::HasSwitch(const char *pSwitch)
 
 ------------------------------------------------------*/
 
-StringType CCmdLine::GetSafeArgument(const char *pSwitch, int iIdx, const char *pDefault)
+StringType CCmdLine::GetSafeArgument(const char *pSwitch, size_t iIdx, const char *pDefault)
 {
    StringType sRet;
    
@@ -205,7 +205,7 @@ StringType CCmdLine::GetSafeArgument(const char *pSwitch, int iIdx, const char *
 
 /*------------------------------------------------------
 
-   StringType CCmdLine::GetArgument(const char *pSwitch, int iIdx)
+   StringType CCmdLine::GetArgument(const char *pSwitch, size_t iIdx)
 
    fetch a argument associated with a switch. throws an exception 
    of (int)0, if the parameter at index iIdx is not found.
@@ -221,14 +221,14 @@ StringType CCmdLine::GetSafeArgument(const char *pSwitch, int iIdx, const char *
 
 ------------------------------------------------------*/
 
-StringType CCmdLine::GetArgument(const char *pSwitch, int iIdx)
+StringType CCmdLine::GetArgument(const char *pSwitch, size_t iIdx)
 {
    if (HasSwitch(pSwitch))
    {
-	   CCmdLine::iterator theIterator;
+      CCmdLine::iterator theIterator;
 
       theIterator = find(pSwitch);
-	   if (theIterator!=end())
+      if (theIterator!=end())
       {
          if ((*theIterator).second.m_strings.size() > iIdx)
          {
