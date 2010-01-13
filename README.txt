@@ -1,20 +1,17 @@
 This is the CXR project:
    http://code.google.com/p/cxr/
-which is a branch of the original CXR:
-   http://www.codeproject.com/KB/string/cxr.aspx
-   
    
 BUILDING
    This project requires CMake, a cross-platform meta-makefile tool.
    
-      * On Windows, download the installer from:
+      * On Windows, download the CMake installer from:
             http://www.cmake.org/cmake/resources/software.html
         and make sure to choose "Add CMake to the system PATH for all users".
       
-      * On Ubuntu, just run
+      * On Ubuntu, install CMake with apt:
          sudo apt-get install cmake
          
-      * On Mac OS X, use MacPorts
+      * On Mac OS X, install CMake with MacPorts:
          sudo port install cmake
       
    Once you have cmake installed, you can build cxr:
